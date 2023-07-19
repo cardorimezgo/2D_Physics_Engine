@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "./Physics/Constants.h"
-
+#include "./Physics/Force.h"
+#include <cstdlib>
 
 bool Application::IsRunning() {
     return running;
@@ -11,15 +12,27 @@ bool Application::IsRunning() {
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Setup() {
     running = Graphics::OpenWindow();
-  
-    particle = new Particle(50, 100, 1.0);
-    particle->radius = 20;
+/*
+    Particle* smallBall = new Particle(50, 100, 1.0);
+    smallBall->radius = 10;
+    particles.push_back(smallBall);
+
+    Particle* bigBall = new Particle(150, 100, 3.0);
+    bigBall->radius = 20;
+    particles.push_back(bigBall);
+*/
+    liquid.x = 0;
+    liquid.y = Graphics::Height()/2;
+    liquid.w = Graphics::Width();
+    liquid.h = Graphics::Height()/2;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Input processing
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Input() {
+    int x, y;
+    int N = 20;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -28,11 +41,42 @@ void Application::Input() {
                 break;
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_ESCAPE)
-                    running = false;
-                break;
+                running = false;
+            break;
+        case SDL_BUTTON_LEFT:
+            SDL_GetMouseState(&x , &y);
+                Particle* smallBall = new Particle( x, y, 1.0);
+                smallBall->radius = rand() % N;
+                particles.push_back(smallBall);
+            break;
+            }
+                //break;
+        /*
+        case SDL_KEYDOWN:
+            if (event.key.keysym.sym == SDLK_ESCAPE)
+                running = false;
+            if (event.key.keysym.sym == SDLK_UP)
+                pushForce.y = -50 * PIXELS_PER_METER;
+            if (event.key.keysym.sym == SDLK_RIGHT)
+                pushForce.x = 50 * PIXELS_PER_METER;
+            if (event.key.keysym.sym == SDLK_DOWN)
+                pushForce.y = 50 * PIXELS_PER_METER;
+            if (event.key.keysym.sym == SDLK_LEFT)
+                pushForce.x = -50 * PIXELS_PER_METER;
+            break;
+        case SDL_KEYUP:
+            if (event.key.keysym.sym == SDLK_UP)
+                pushForce.y = 0;
+            if (event.key.keysym.sym == SDLK_RIGHT)
+                pushForce.x = 0;
+            if (event.key.keysym.sym == SDLK_DOWN)
+                pushForce.y = 0;
+            if (event.key.keysym.sym == SDLK_LEFT)
+                pushForce.x = 0;
+            break;
+            */
         }
     }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Update function (called several times per second to update objects)
@@ -54,17 +98,51 @@ void Application::Update() {
     //Set the time to the currect frame to be used in the next one
     timePreviousFrame = SDL_GetTicks();
 
-    //Proceed to update the objects in the scene 
-    particle->acceleration = Vec2(0.0, 9.8 * PIXELS_PER_METER);
-    // Integrate the acceleration and velocity to find the new velocity
-    particle->velocity += particle->acceleration * deltatime;
-    particle->position += particle->velocity * deltatime;
-
-    // if particle posX+rad == width: flip Xvel.
-    // if particle  posY+rad == height : flip Yvel.  
-    if (particle->position.x + (particle->radius/2) == Graphics::Width())
+    //Proceed to apply forces to particle(s)
+    for(auto particle: particles)
     {
+        Vec2 wind = Vec2(0.9 * PIXELS_PER_METER, 0.0);
+        particle->AddForce(wind);
 
+        Vec2 weight = Vec2(0.0, particle->mass * 9.8 * PIXELS_PER_METER);
+        particle->AddForce(weight);
+
+         particle->AddForce(pushForce);
+
+         if(particle->position.y >= liquid.y){
+             Vec2 drag = Force::GenerateDragForce(*particle, 0.05);
+             particle->AddForce(drag);
+         }
+    }
+
+    // Integrate the acceleration and velocity to find the new velocity
+    for(auto particle: particles){
+        particle->Integrate(deltatime);
+    }
+
+    //calculate boundary bouncing screen
+    for(auto particle: particles)
+    {
+    if (particle->position.x + particle->radius >= Graphics::Width())
+    {
+        particle->position.x = Graphics::Width() - particle->radius;
+        particle->velocity.x *= -1.0;
+    }
+    else if(particle->position.x - particle->radius <= 0)
+    {
+        particle->position.x = particle->radius;
+        particle->velocity.x *= -1.0;
+    }
+    if(particle->position.y + particle->radius >= Graphics::Height())
+    {
+        particle->position.y = Graphics::Height() - particle->radius;
+        particle->velocity.y *= -1.0;
+    }
+    else if(particle->position.y - particle->radius <= 0)
+    {
+        particle->position.y = particle->radius;
+        particle->velocity.y *= -1.0;
+    }
     }
 }
 
@@ -73,7 +151,14 @@ void Application::Update() {
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Render() {
     Graphics::ClearScreen(0xFF056263);
+
+    // Draw liquid
+    Graphics::DrawFillRect(liquid.x + liquid.w/2, liquid.y + liquid.h/2, liquid.w, liquid.h, 0xFF6E3713);
+
+    for(auto particle: particles)
+    {
     Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, 0xFFFFFFFF);
+    }
     Graphics::RenderFrame();
 }
 
@@ -81,6 +166,9 @@ void Application::Render() {
 // Destroy function to delete objects and close the window
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Destroy() {
-    delete particle;
+    for(auto particle: particles)
+    {
+        delete particle;
+    }
     Graphics::CloseWindow();
 }
