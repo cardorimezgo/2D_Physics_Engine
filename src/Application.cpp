@@ -31,8 +31,7 @@ void Application::Setup() {
 // Input processing
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Input() {
-    int x, y;
-    int N = 20;
+
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -43,11 +42,14 @@ void Application::Input() {
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                 running = false;
             break;
-        case SDL_BUTTON_LEFT:
-            SDL_GetMouseState(&x , &y);
-                Particle* smallBall = new Particle( x, y, 1.0);
-                smallBall->radius = rand() % N;
-                particles.push_back(smallBall);
+        case SDL_MOUSEBUTTONDOWN:
+            if(event.button.button == SDL_BUTTON_LEFT){
+                int x, y;
+                SDL_GetMouseState(&x , &y);
+                Particle* particle = new Particle( x, y, 1.0);
+                particle->radius = rand() % 20;
+                particles.push_back(particle);
+            }
             break;
             }
                 //break;
