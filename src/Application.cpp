@@ -51,6 +51,10 @@ void Application::Input() {
                 particles.push_back(particle);
             }
             break;
+        case SDL_MOUSEMOTION:
+            mouseCursor.x = event.motion.x;
+            mouseCursor.y = event.motion.y;
+            break;
             }
                 //break;
         /*
@@ -115,6 +119,11 @@ void Application::Update() {
              Vec2 drag = Force::GenerateDragForce(*particle, 0.05);
              particle->AddForce(drag);
          }
+         particle->AddForce(pushForce);
+
+         //apply fruction force
+         Vec2 friction = Force::GenerateFrictionForce(*particle, 5.6 * PIXELS_PER_METER);
+         particle->AddForce(friction);
     }
 
     // Integrate the acceleration and velocity to find the new velocity
