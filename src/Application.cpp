@@ -12,6 +12,8 @@ bool Application::IsRunning() {
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Setup() {
     running = Graphics::OpenWindow();
+    mouseCursor = SDL_MouseMotionEvent();
+    leftMouseButtonDown = SDL_MOUSEBUTTONDOWN;
 /*
     Particle* smallBall = new Particle(50, 100, 1.0);
     smallBall->radius = 10;
@@ -42,19 +44,29 @@ void Application::Input() {
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                 running = false;
             break;
-        case SDL_MOUSEBUTTONDOWN:
-            if(event.button.button == SDL_BUTTON_LEFT){
-                int x, y;
-                SDL_GetMouseState(&x , &y);
-                Particle* particle = new Particle( x, y, 1.0);
-                particle->radius = rand() % 20;
-                particles.push_back(particle);
-            }
-            break;
-        case SDL_MOUSEMOTION:
+            case SDL_MOUSEMOTION:
             mouseCursor.x = event.motion.x;
             mouseCursor.y = event.motion.y;
             break;
+            case SDL_MOUSEBUTTONDOWN:
+            if(!leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT){
+                leftMouseButtonDown = true;
+                int x, y;
+                SDL_GetMouseState(&x , &y);
+                mouseCursor.x = x;
+                mouseCursor.y = y;
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            if(leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT){
+                leftMouseButtonDown = false;
+                Vec2 impulseDirection = (particles[0]->position - mouseCursor).UnitVector();
+                float impulseMagnitude = (particles[0]->position - mouseCursor).Magnitude() * 5.0;
+                particles[0]->velocity= impulseDirection * impulseMagnitude;
+            }
+        break;
+
+
             }
                 //break;
         /*
