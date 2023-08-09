@@ -12,21 +12,11 @@ bool Application::IsRunning() {
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Setup() {
     running = Graphics::OpenWindow();
-    mouseCursor = SDL_MouseMotionEvent();
-    leftMouseButtonDown = SDL_MOUSEBUTTONDOWN;
-/*
-    Particle* smallBall = new Particle(50, 100, 1.0);
-    smallBall->radius = 10;
-    particles.push_back(smallBall);
 
-    Particle* bigBall = new Particle(150, 100, 3.0);
-    bigBall->radius = 20;
-    particles.push_back(bigBall);
-*/
-    liquid.x = 0;
-    liquid.y = Graphics::Height()/2;
-    liquid.w = Graphics::Width();
-    liquid.h = Graphics::Height()/2;
+    Particle* particle = new Particle((int)(Graphics::Width() / 2), (int)
+    (Graphics::Height() / 2), 1.0);
+    particle->radius = 15;
+    particles.push_back(particle);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -43,10 +33,28 @@ void Application::Input() {
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                 running = false;
-            break;
+                if (event.key.keysym.sym == SDLK_UP)
+                    pushForce.y = -50 * PIXELS_PER_METER;
+                if (event.key.keysym.sym == SDLK_RIGHT)
+                    pushForce.x = 50 * PIXELS_PER_METER;
+                if (event.key.keysym.sym == SDLK_DOWN)
+                    pushForce.y = 50 * PIXELS_PER_METER;
+                if (event.key.keysym.sym == SDLK_LEFT)
+                    pushForce.x = -50 * PIXELS_PER_METER;
+                break;
+            case SDL_KEYUP:
+                if (event.key.keysym.sym == SDLK_UP)
+                    pushForce.y = 0;
+                if (event.key.keysym.sym == SDLK_RIGHT)
+                    pushForce.x = 0;
+                if (event.key.keysym.sym == SDLK_DOWN)
+                    pushForce.y = 0;
+                if (event.key.keysym.sym == SDLK_LEFT)
+                    pushForce.x = 0;
+                break;
             case SDL_MOUSEMOTION:
-            mouseCursor.x = event.motion.x;
-            mouseCursor.y = event.motion.y;
+                mouseCursor.x = event.motion.x;
+                mouseCursor.y = event.motion.y;
             break;
             case SDL_MOUSEBUTTONDOWN:
             if(!leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT){
@@ -64,37 +72,10 @@ void Application::Input() {
                 float impulseMagnitude = (particles[0]->position - mouseCursor).Magnitude() * 5.0;
                 particles[0]->velocity= impulseDirection * impulseMagnitude;
             }
-        break;
-
-
-            }
-                //break;
-        /*
-        case SDL_KEYDOWN:
-            if (event.key.keysym.sym == SDLK_ESCAPE)
-                running = false;
-            if (event.key.keysym.sym == SDLK_UP)
-                pushForce.y = -50 * PIXELS_PER_METER;
-            if (event.key.keysym.sym == SDLK_RIGHT)
-                pushForce.x = 50 * PIXELS_PER_METER;
-            if (event.key.keysym.sym == SDLK_DOWN)
-                pushForce.y = 50 * PIXELS_PER_METER;
-            if (event.key.keysym.sym == SDLK_LEFT)
-                pushForce.x = -50 * PIXELS_PER_METER;
             break;
-        case SDL_KEYUP:
-            if (event.key.keysym.sym == SDLK_UP)
-                pushForce.y = 0;
-            if (event.key.keysym.sym == SDLK_RIGHT)
-                pushForce.x = 0;
-            if (event.key.keysym.sym == SDLK_DOWN)
-                pushForce.y = 0;
-            if (event.key.keysym.sym == SDLK_LEFT)
-                pushForce.x = 0;
-            break;
-            */
         }
-    }
+      }
+   }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Update function (called several times per second to update objects)
@@ -119,6 +100,7 @@ void Application::Update() {
     //Proceed to apply forces to particle(s)
     for(auto particle: particles)
     {
+        /*
         Vec2 wind = Vec2(0.9 * PIXELS_PER_METER, 0.0);
         particle->AddForce(wind);
 
@@ -130,7 +112,7 @@ void Application::Update() {
          if(particle->position.y >= liquid.y){
              Vec2 drag = Force::GenerateDragForce(*particle, 0.05);
              particle->AddForce(drag);
-         }
+         }*/
          particle->AddForce(pushForce);
 
          //apply fruction force
@@ -175,8 +157,9 @@ void Application::Update() {
 void Application::Render() {
     Graphics::ClearScreen(0xFF056263);
 
-    // Draw liquid
-    Graphics::DrawFillRect(liquid.x + liquid.w/2, liquid.y + liquid.h/2, liquid.w, liquid.h, 0xFF6E3713);
+    if(leftMouseButtonDown){
+        Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, mouseCursor.x, mouseCursor.y, 0xFFFFFFFF);
+    }
 
     for(auto particle: particles)
     {
