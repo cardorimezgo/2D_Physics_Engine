@@ -13,10 +13,13 @@ bool Application::IsRunning() {
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    Particle* particle = new Particle((int)(Graphics::Width() / 2), (int)
-    (Graphics::Height() / 2), 1.0);
-    particle->radius = 15;
-    particles.push_back(particle);
+    Particle* smallParticle = new Particle(200 , 200, 1.0);
+    smallParticle->radius = 6;
+    particles.push_back(smallParticle);
+
+    Particle* bigParticle = new Particle(500, 500, 20.0);
+    bigParticle->radius = 20;
+    particles.push_back(bigParticle);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -116,9 +119,16 @@ void Application::Update() {
          particle->AddForce(pushForce);
 
          //apply fruction force
-         Vec2 friction = Force::GenerateFrictionForce(*particle, 5.6 * PIXELS_PER_METER);
+	 Vec2 friction = Force::GenerateFrictionForce(*particle, 5);
+//         Vec2 friction = Force::GenerateFrictionForce(*particle, 5.6 * PIXELS_PER_METER);
          particle->AddForce(friction);
     }
+
+    //Apply gravitational force to our two particles/planets
+    Vec2 attraction = Force::GenerateGravitationalForce(*particles[0] , *particles[1] , 1000.0, 5, 100);
+
+    particles[0]->AddForce(attraction);
+    particles[1]->AddForce(-attraction);	
 
     // Integrate the acceleration and velocity to find the new velocity
     for(auto particle: particles){
@@ -161,10 +171,9 @@ void Application::Render() {
         Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, mouseCursor.x, mouseCursor.y, 0xFFFFFFFF);
     }
 
-    for(auto particle: particles)
-    {
-    Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, 0xFFFFFFFF);
-    }
+    Graphics::DrawFillCircle(particles[0]->position.x, particles[0]->position.y, particles[0]->radius, 0xFFAA3300);
+    Graphics::DrawFillCircle(particles[1]->position.x, particles[1]->position.y, particles[1]->radius, 0xFF00FFFF);
+    
     Graphics::RenderFrame();
 }
 
@@ -172,8 +181,7 @@ void Application::Render() {
 // Destroy function to delete objects and close the window
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Destroy() {
-    for(auto particle: particles)
-    {
+    for(auto particle: particles){    
         delete particle;
     }
     Graphics::CloseWindow();
