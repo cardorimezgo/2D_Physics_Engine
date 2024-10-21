@@ -93,7 +93,7 @@ void Graphics::DrawFillPolygon(int x, int y, const std::vector<Vec2>& vertices, 
 
 void Graphics::DrawTexture(int x, int y, int width, int height, float rotation, SDL_Texture* texture) {
     SDL_Rect dstRect = {x - (width / 2), y - (height / 2), width, height};
-    float rotationDeg = rotation * 57.2958f;
+    float rotationDeg = rotation * 57.2958;
     SDL_RenderCopyEx(renderer, texture, NULL, &dstRect, rotationDeg, NULL, SDL_FLIP_NONE);
 }
 
