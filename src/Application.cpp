@@ -14,14 +14,11 @@ void Application::Setup() {
 
     anchor = Vec2(Graphics::Width() / 2.0, 30);
 
-    Particle* bob = new Particle(Graphics::Width() / 2.0, Graphics::Height() / 2.0, 2.0);
-    bob->radius = 10;
-    particles.push_back(bob);
-
-    for (int i = 0; i < numParticles; i++) { /// How to make that 0.75,  0.50, 0.25 ,etc. are related to 'i'
-
+    for (int i = 1; i < numParticles; i++) {
         Particle* bob;
-        bob = new Particle(Graphics::Width() / 2.0, Graphics::Height() * 0.75, 2.0);
+        bob = new Particle(Graphics::Width() / 2.0, Graphics::Height() * 0.16 * i, 2.0); // 1/8 distance between bobs
+        bob->radius = 10;
+        particles.push_back(bob);
     }
 }
 
@@ -73,9 +70,9 @@ void Application::Input() {
             case SDL_MOUSEBUTTONUP:
                 if (leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
                     leftMouseButtonDown = false;
-                    Vec2 impulseDirection = (particles[0]->position - mouseCursor).UnitVector();
-                    float impulseMagnitude = (particles[0]->position - mouseCursor).Magnitude() * 5.0;
-                    particles[0]->velocity = impulseDirection * impulseMagnitude;
+                    Vec2 impulseDirection = (particles[1]->position - mouseCursor).UnitVector();
+                    float impulseMagnitude = (particles[1]->position - mouseCursor).Magnitude() * 5.0;
+                    particles[1]->velocity = impulseDirection * impulseMagnitude;
                 }
                 break;
         }
@@ -114,8 +111,10 @@ void Application::Update() {
     }
 
     // Apply a spring force to the particle connected to the anchor
-    Vec2 springForce = Force::GenerateSpringForce(*particles[0], anchor, restLength, k);
-    particles[0]->AddForce(springForce);
+    for (int i = 0; i < numParticles -2; i++) {
+        Vec2 springForce = Force::GenerateSpringForce(*particles[i], *particles[i+1], 30, k); // 1/8 distance
+        particles[i]->AddForce(springForce);
+    }
 
     // Integrate the acceleration and velocity to estimate the new position
     for (auto particle: particles) {
@@ -149,18 +148,21 @@ void Application::Render() {
     Graphics::ClearScreen(0xFF0F0721);
 
     if (leftMouseButtonDown) {
-        Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
+            Graphics::DrawLine(particles[1]->position.x, particles[1]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
     }
 
     // Draw the spring
-    Graphics::DrawLine(anchor.x, anchor.y, particles[0]->position.x, particles[0]->position.y, 0xFF313131);
+    for (auto particle : particles) {
+        Graphics::DrawLine(anchor.x, anchor.y, particle->position.x, particle->position.y, 0xFF313131);
+    }
     
     // Draw the anchor
     Graphics::DrawFillCircle(anchor.x, anchor.y, 5, 0xFF001155);
 
     // Draw the bob
-    Graphics::DrawFillCircle(particles[0]->position.x, particles[0]->position.y, particles[0]->radius, 0xFFFFFFFF);
-
+    for (auto particle : particles) {
+        Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, 0xFFFFFFFF);
+    }
     Graphics::RenderFrame();
 }
 
