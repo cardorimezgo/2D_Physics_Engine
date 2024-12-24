@@ -12,14 +12,9 @@ bool Application::IsRunning() {
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    anchor = Vec2(Graphics::Width() / 2.0, 30);
+    Body* body = new Body(CircleShape(50), Graphics::Width() / 2.0, Graphics::Height() * 0.05, 2.0);
+    bodies.push_back(body);
 
-    for (int i = 0; i < numParticles; i++) {
-        Particle* bob;
-        bob = new Particle(Graphics::Width() / 2.0, Graphics::Height() * 0.05 * i, 2.0); // 1/8 distance between bobs
-        bob->radius = 10;
-        particles.push_back(bob);
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,14 +62,15 @@ void Application::Input() {
                     mouseCursor.y = y;
                 }
                 break;
-            case SDL_MOUSEBUTTONUP:
+           /* case SDL_MOUSEBUTTONUP:
                 if (leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
                     leftMouseButtonDown = false;
-                    Vec2 impulseDirection = (particles[numParticles - 1]->position - mouseCursor).UnitVector();
-                    float impulseMagnitude = (particles[numParticles - 1]->position - mouseCursor).Magnitude() * 5.0;
-                    particles[numParticles - 1]->velocity = impulseDirection * impulseMagnitude;
+                    Vec2 impulseDirection = (bodies[numBodies - 1]->position - mouseCursor).UnitVector();
+                    float impulseMagnitude = (bodies[numBodies - 1]->position - mouseCursor).Magnitude() * 5.0;
+                    bodies[numBodies - 1]->velocity = impulseDirection * impulseMagnitude;
                 }
                 break;
+            */
         }
     }
 }
@@ -97,50 +93,58 @@ void Application::Update() {
     // Set the time of the current frame to be used in the next one
     timePreviousFrame = SDL_GetTicks();
 
-    // Apply forces to the particles
-    for (auto particle: particles) {
-        particle->AddForce(pushForce);
+    // Apply forces to the bodies
+    for (auto body: bodies) {
+        //body->AddForce(pushForce);
 
         // Apply a drag force
-        Vec2 drag = Force::GenerateDragForce(*particle, 0.001);
-        particle->AddForce(drag);
+        //Vec2 drag = Force::GenerateDragForce(*body, 0.001);
+        //body->AddForce(drag);
         
         // Apply weight force
-        Vec2 weight = Vec2(0.0, particle->mass * 9.8 * PIXELS_PER_METER);
-        particle->AddForce(weight);
-    }
+        Vec2 weight = Vec2(0.0, body->mass * 9.8 * PIXELS_PER_METER);
+        body->AddForce(weight);
 
-    // Apply a spring force to the particle connected to the anchor
-    Vec2 springForce_anchor = Force::GenerateSpringForce(*particles[0], anchor, 10, k);
-    particles[0]->AddForce(springForce_anchor);
+        float torque = 200;
+        body->addTorque(torque);
+    }
+    /*
+    // Apply a spring force to the body connected to the anchor
+    Vec2 springForce_anchor = Force::GenerateSpringForce(*bodies[0], anchor, 10, k);
+    bodies[0]->AddForce(springForce_anchor);
     
-    for (int i = 0; i < numParticles - 1; i++) { 
-        Vec2 springForce = Force::GenerateSpringForce(*particles[i], *particles[i+1], 30, k); // 1/8 distance
-        particles[i]->AddForce(springForce);
-        particles[i + 1]->AddForce(-springForce);
+    for (int i = 0; i < numBodies - 1; i++) { 
+        Vec2 springForce = Force::GenerateSpringForce(*bodies[i], *bodies[i+1], 30, k); // 1/8 distance
+        bodies[i]->AddForce(springForce);
+        bodies[i + 1]->AddForce(-springForce);
     }
-
+    */  
     // Integrate the acceleration and velocity to estimate the new position
-    for (auto particle: particles) {
-        particle->Integrate(deltaTime);
+    for (auto body: bodies) {
+        body->IntegrateLinear(deltaTime);
+        body->IntegrateAngular(deltaTime);
     }
 
     // Check the boundaries of the window
-    for (auto particle: particles) {
-        // Nasty hardcoded flip in velocity if it touches the limits of the screen window
-        if (particle->position.x - particle->radius <= 0) {
-            particle->position.x = particle->radius;
-            particle->velocity.x *= -0.9;
-        } else if (particle->position.x + particle->radius >= Graphics::Width()) {
-            particle->position.x = Graphics::Width() - particle->radius;
-            particle->velocity.x *= -0.9;
-        }
-        if (particle->position.y - particle->radius <= 0) {
-            particle->position.y = particle->radius;
-            particle->velocity.y *= -0.9;
-        } else if (particle->position.y + particle->radius >= Graphics::Height()) {
-            particle->position.y = Graphics::Height() - particle->radius;
-            particle->velocity.y *= -0.9;
+    for (auto body: bodies) {
+        if (body->shape->GetType() == CIRCLE) {
+            CircleShape* circleShape = (CircleShape*)body->shape;
+            if (body->position.x - circleShape->radius <= 0) {
+                body->position.x = circleShape->radius;
+                body->velocity.x *= -0.9;
+            }
+            else if (body->position.x + circleShape->radius >= Graphics::Width()) {
+                body->position.x = Graphics::Width() - circleShape->radius;
+                body->velocity.x *= -0.9;
+            }
+            if (body->position.y - circleShape->radius <= 0) {
+                body->position.y = circleShape->radius;
+                body->velocity.y *= -0.9;
+            }
+            else if (body->position.y + circleShape->radius >= Graphics::Height()) {
+                body->position.y = Graphics::Height() - circleShape->radius;
+                body->velocity.y *= -0.9;
+            }
         }
     }
 }
@@ -150,27 +154,35 @@ void Application::Update() {
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Render() {
     Graphics::ClearScreen(0xFF0F0721);
-
+    /* /// Spring Forces ------------
     if (leftMouseButtonDown) {
-            Graphics::DrawLine(particles[numParticles - 1]->position.x, particles[numParticles - 1]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
+            Graphics::DrawLine(bodies[numBodies - 1]->position.x, bodies[numBodies - 1]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
     }
 
     // Draw the spring
-    Graphics::DrawLine(anchor.x, anchor.y, particles[0]->position.x, particles[0]->position.y, 0xFF313131);
+    Graphics::DrawLine(anchor.x, anchor.y, bodies[0]->position.x, bodies[0]->position.y, 0xFF313131);
 
-    for (int i = 0; i < numParticles - 1; i++) {
+    for (int i = 0; i < numBodies - 1; i++) {
 
-        Graphics::DrawLine(particles[i]->position.x, particles[i]->position.y,
-                           particles[i + 1]->position.x, particles[i + 1]->position.y,
+        Graphics::DrawLine(bodies[i]->position.x, bodies[i]->position.y,
+                           bodies[i + 1]->position.x, bodies[i + 1]->position.y,
                            0xFF313131);
     }
     
     // Draw the anchor
     Graphics::DrawFillCircle(anchor.x, anchor.y, 5, 0xFF001155);
+    */
 
     // Draw the bob
-    for (auto particle : particles) {
-        Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, 0xFFFFFFFF);
+    for (auto body : bodies) {
+        if (body->shape->GetType() == CIRCLE) {
+            CircleShape* circleShape = (CircleShape*)body->shape;
+            Graphics::DrawCircle(body->position.x, body->position.y, circleShape->radius, body->rotation, 0xFFFFFFFF);
+        }
+        else
+        {
+            //todo: draw other type of shape
+        }
     }
     Graphics::RenderFrame();
 }
@@ -179,8 +191,8 @@ void Application::Render() {
 // Destroy function to delete objects and close the window
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Destroy() {
-    for (auto particle: particles) {
-        delete particle;
+    for (auto body: bodies) {
+        delete body;
     }
     Graphics::CloseWindow();
 }

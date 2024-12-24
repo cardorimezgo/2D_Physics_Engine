@@ -2,23 +2,23 @@
 #define APPLICATION_H
 
 #include "./Graphics.h"
-#include "./Physics/Particle.h"
+#include "./Physics/Body.h"
 #include <vector>
 
 class Application {
     private:
         bool running = false;
-        std::vector<Particle*> particles;
+        std::vector<Body*> bodies;
         Vec2 pushForce = Vec2(0, 0);
         Vec2 mouseCursor = Vec2(0, 0);
         bool leftMouseButtonDown = false;
 
-        int numParticles = 5;
-
+        int numBodies = 10;
+/*
         Vec2 anchor;
-        float k = 100;
-        float restLength = 400;
-
+        float k = 50;
+        float restLength = 20;
+*/
     public:
         Application() = default;
         ~Application() = default;
