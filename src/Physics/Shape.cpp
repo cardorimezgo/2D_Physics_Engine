@@ -36,7 +36,7 @@ ShapeType PolygonShape::GetType() const {
 };
 
 Shape* PolygonShape::Clone() const {
-	return new PolygonShape(vertices);
+	return new PolygonShape(localVertices);
 }
 
 float PolygonShape::GetMomentofInertia() const {
@@ -44,8 +44,32 @@ float PolygonShape::GetMomentofInertia() const {
 	return 0.0;
 };
 
+void PolygonShape::updateVertices(float angle, const Vec2& position) {
+	//Loop all the vertices ,  transform from local to world space
+	for (int i = 0; i < localVertices.size(); i++) {
+		//rotate vector
+		worldVertices[i] = localVertices[i].Rotate(angle);
+		//translate vector
+		worldVertices[i] += position;
+	}
+}
+
 BoxShape::BoxShape(float widht, float height) {
 	std::cout << "BoxShape constructor called" << std::endl;
+	this->width = width;
+	this->height = height;
+
+	// Load vertices of the box polygon
+	localVertices.push_back(Vec2(-widht / 2.0, -height / 2.0));
+	localVertices.push_back(Vec2(+widht / 2.0, -height / 2.0));
+	localVertices.push_back(Vec2(+width / 2.0, +height / 2.0));
+	localVertices.push_back(Vec2(-width / 2.0, +height / 2.0));
+
+	worldVertices.push_back(Vec2(-widht / 2.0, -height / 2.0));
+	worldVertices.push_back(Vec2(+widht / 2.0, -height / 2.0));
+	worldVertices.push_back(Vec2(+width / 2.0, +height / 2.0));
+	worldVertices.push_back(Vec2(-width / 2.0, +height / 2.0));
+
 };
 
 BoxShape :: ~BoxShape() {
@@ -63,5 +87,5 @@ Shape* BoxShape::Clone()const {
 float BoxShape::GetMomentofInertia()const {
 	//For a rectangle, the momet of inertia is 1/12 * (w^2 + h^2)
 	//But this still  needs to be multiplied by the rigidbody's mass 
-	return (0.83333) * width * width + height * height;
+	return (0.83333) * (width * width + height * height);
 }
