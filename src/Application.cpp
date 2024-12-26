@@ -1,4 +1,4 @@
-#include "Application.h"
+#include "Application.h" 
 #include "./Physics/Constants.h"
 #include "./Physics/Force.h"
 
@@ -12,8 +12,8 @@ bool Application::IsRunning() {
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    Body* body = new Body(CircleShape(50), Graphics::Width() / 2.0, Graphics::Height() * 0.05, 2.0);
-    bodies.push_back(body);
+    Body* box = new Body(BoxShape(200, 100), Graphics::Width() / 2.0, Graphics::Height() / 2.0, 1.0);
+    bodies.push_back(box);
 
 }
 
@@ -102,8 +102,8 @@ void Application::Update() {
         //body->AddForce(drag);
         
         // Apply weight force
-        Vec2 weight = Vec2(0.0, body->mass * 9.8 * PIXELS_PER_METER);
-        body->AddForce(weight);
+        //Vec2 weight = Vec2(0.0, body->mass * 9.8 * PIXELS_PER_METER);
+        //body->AddForce(weight);
 
         float torque = 200;
         body->addTorque(torque);
@@ -121,8 +121,8 @@ void Application::Update() {
     */  
     // Integrate the acceleration and velocity to estimate the new position
     for (auto body: bodies) {
-        body->IntegrateLinear(deltaTime);
-        body->IntegrateAngular(deltaTime);
+
+        body->update(deltaTime);
     }
 
     // Check the boundaries of the window
@@ -173,15 +173,15 @@ void Application::Render() {
     Graphics::DrawFillCircle(anchor.x, anchor.y, 5, 0xFF001155);
     */
 
-    // Draw the bob
     for (auto body : bodies) {
         if (body->shape->GetType() == CIRCLE) {
             CircleShape* circleShape = (CircleShape*)body->shape;
             Graphics::DrawCircle(body->position.x, body->position.y, circleShape->radius, body->rotation, 0xFFFFFFFF);
         }
-        else
-        {
-            //todo: draw other type of shape
+        if (body->shape->GetType() == BOX) {
+            BoxShape* boxShape = (BoxShape*)body->shape;
+            Graphics::DrawPolygon(body->position.x, body->position.y, boxShape->worldVertices, 0xFFFFFFFF);
+     
         }
     }
     Graphics::RenderFrame();
